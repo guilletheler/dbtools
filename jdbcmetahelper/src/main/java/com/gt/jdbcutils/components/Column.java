@@ -1,4 +1,4 @@
-package com.gt.jdbcutils;
+package com.gt.jdbcutils.components;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

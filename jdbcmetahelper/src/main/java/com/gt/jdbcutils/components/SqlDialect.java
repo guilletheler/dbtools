@@ -1,4 +1,4 @@
-package com.gt.jdbcutils;
+package com.gt.jdbcutils.components;
 
 import java.sql.Connection;
 import java.util.logging.Level;

@@ -8,6 +8,12 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.gt.jdbcutils.components.Column;
+import com.gt.jdbcutils.components.Database;
+import com.gt.jdbcutils.components.Index;
+import com.gt.jdbcutils.components.Table;
+import com.gt.jdbcutils.helpers.JdbcMetaDecoder;
+
 import org.junit.jupiter.api.Test;
 
 public class JdbcMetaDecoderTest {
@@ -18,7 +24,6 @@ public class JdbcMetaDecoderTest {
         try {
             Class.forName("org.hsqldb.jdbcDriver");
         } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -29,8 +34,12 @@ public class JdbcMetaDecoderTest {
         // It can contain directory names relative to the
         // current working directory
         try {
+
+            // String folder = "C:/Users/guill/prog/java_mvn/copasp/localdb/database";
+            String folder = "/home/prog/java_mvn/copasp/localdb/database";
+            
             Connection conn = DriverManager.getConnection("jdbc:hsqldb:"
-                                               + "file://C:/Users/guill/prog/java_mvn/copasp/localdb/database",    // filenames
+                                               + "file://" + folder,    // filenames
                                                "sa",                     // username
                                                "");
 
@@ -47,12 +56,12 @@ public class JdbcMetaDecoderTest {
                         System.out.println("\t" + col.toString());
                     }
                     System.out.println("pk");
-                    for(Column col : table.getPrimaryKey().columns) {
+                    for(Column col : table.getPrimaryKey().getColumns()) {
                         System.out.println("\t" + col.toString());
 
                     }
                     System.out.println("indices");
-                    for(Index idx : table.indexes) {
+                    for(Index idx : table.getIndexes()) {
                         System.out.println("\t" + idx.toString());
 
                     }
@@ -64,7 +73,6 @@ public class JdbcMetaDecoderTest {
 
 
         } catch (SQLException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }                      // password
     }

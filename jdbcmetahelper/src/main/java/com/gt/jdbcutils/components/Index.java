@@ -1,4 +1,4 @@
-package com.gt.jdbcutils;
+package com.gt.jdbcutils.components;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,10 +10,13 @@ import lombok.ToString;
 
 @Data
 @NoArgsConstructor
-public class PrimaryKey {
+public class Index {
     Table table;
-
+    boolean unique;
+    String name;
+    
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     List<Column> columns = new ArrayList<>();
+
 }

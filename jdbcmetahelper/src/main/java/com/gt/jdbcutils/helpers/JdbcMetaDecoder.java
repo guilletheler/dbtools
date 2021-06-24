@@ -1,9 +1,16 @@
-package com.gt.jdbcutils;
+package com.gt.jdbcutils.helpers;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import com.gt.jdbcutils.components.Column;
+import com.gt.jdbcutils.components.Database;
+import com.gt.jdbcutils.components.ForeignKey;
+import com.gt.jdbcutils.components.Index;
+import com.gt.jdbcutils.components.PrimaryKey;
+import com.gt.jdbcutils.components.Table;
 
 public class JdbcMetaDecoder {
 

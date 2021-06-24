@@ -1,4 +1,4 @@
-package com.gt.jdbcutils;
+package com.gt.jdbcutils.components;
 
 import java.util.ArrayList;
 import java.util.List;
