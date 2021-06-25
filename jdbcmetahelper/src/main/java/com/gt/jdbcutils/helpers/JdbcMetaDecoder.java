@@ -61,7 +61,7 @@ public class JdbcMetaDecoder {
                 col.setLargo(rs.getInt("COLUMN_SIZE"));
                 col.setDecimalDigits(rs.getInt("DECIMAL_DIGITS"));
                 col.setNullable(rs.getInt("NULLABLE") == 0);
-
+                col.setDefaultValue(rs.getString("COLUMN_DEF"));
                 table.getColumns().add(col);
             }
         }
@@ -126,7 +126,7 @@ public class JdbcMetaDecoder {
                 }
 
                 foreignKey.getColumns().add(table.getColumnByName(rs.getString("FKCOLUMN_NAME")));
-                foreignKey.getColumns().add(foreignKey.getRefTable().getColumnByName(rs.getString("PKCOLUMN_NAME")));
+                foreignKey.getRefColumns().add(foreignKey.getRefTable().getColumnByName(rs.getString("PKCOLUMN_NAME")));
             }
         }
     }

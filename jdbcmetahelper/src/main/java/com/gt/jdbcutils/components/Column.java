@@ -16,4 +16,5 @@ public class Column {
     boolean nullable;
     boolean isAutoIncrement;
     Long nextAutoincVal;
+    String defaultValue = null;
 }

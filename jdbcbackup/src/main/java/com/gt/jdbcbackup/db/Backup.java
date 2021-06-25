@@ -31,6 +31,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import com.gt.jdbcbackup.MainClass;
+import com.gt.jdbcutils.components.SqlDialect;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -40,7 +41,7 @@ public class Backup {
 
 	OutputStream printStream;
 
-	boolean ddl = false;
+	boolean onlyDdl = false;
 
 	SqlDialect sqlDialect;
 
@@ -66,14 +67,11 @@ public class Backup {
 		}
 	}
 
-	public static void toZipFile(Connection conn, String fileName, boolean ddl, String sqlDialectStr)
+	public static void toZipFile(Connection conn, String fileName, boolean onlyDdl, String sqlDialectStr)
 			throws SQLException {
 
 		if (fileName == null) {
-			try (ResultSet catalogs = conn.getMetaData().getCatalogs()) {
-				catalogs.next();
-				fileName = catalogs.getString("TABLE_CAT");
-			}
+			fileName = conn.getCatalog();
 		}
 
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
@@ -81,7 +79,7 @@ public class Backup {
 
 		Backup backup = new Backup();
 
-		backup.ddl = ddl;
+		backup.onlyDdl = onlyDdl;
 
 		backup.setConnection(conn);
 
@@ -119,7 +117,7 @@ public class Backup {
 		try {
 			createTablesScript();
 
-			if (!ddl) {
+			if (!onlyDdl) {
 				createInsertsScript();
 			}
 
@@ -281,9 +279,9 @@ public class Backup {
 						case POSTGRES:
 							break;
 						case SQLSERVER:
-						write("\n\nSET IDENTITY_INSERT ");
-						write(formatTableName(schemaName, tableName));
-						write(" ON; --\n");
+							write("\n\nSET IDENTITY_INSERT ");
+							write(formatTableName(schemaName, tableName));
+							write(" ON; --\n");
 							break;
 					}
 				}
@@ -307,9 +305,9 @@ public class Backup {
 						case POSTGRES:
 							break;
 						case SQLSERVER:
-						write("\nSET IDENTITY_INSERT ");
-						write(formatTableName(schemaName, tableName));
-						write(" OFF;\n\n");
+							write("\nSET IDENTITY_INSERT ");
+							write(formatTableName(schemaName, tableName));
+							write(" OFF;\n\n");
 							break;
 					}
 				}
