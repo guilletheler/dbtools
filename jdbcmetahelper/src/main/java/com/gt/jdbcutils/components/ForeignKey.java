@@ -11,8 +11,13 @@ import lombok.ToString;
 @Data
 @NoArgsConstructor
 public class ForeignKey {
+    
     String name;
+
+    @ToString.Exclude
     Table table;
+
+    @ToString.Exclude
     Table refTable;
 
     @ToString.Exclude
