@@ -3,29 +3,99 @@ package com.gt.jdbcutils.helpers;
 import java.sql.JDBCType;
 import java.sql.Types;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.gt.jdbcutils.components.Column;
+import com.gt.jdbcutils.components.ForeignKey;
+import com.gt.jdbcutils.components.Index;
 import com.gt.jdbcutils.components.SqlDialect;
 import com.gt.jdbcutils.components.Table;
 
 public class DialectSyntaxHelper {
 
-    public static void addColumnDef(StringBuilder sb, Column column, SqlDialect dialect) {
-        switch (dialect) {
-            case HSQL:
-            case POSTGRES:
-            case SQLSERVER:
-            default:
-                sb.append(column.getName());
-                break;
-            case MYSQL:
-                sb.append("`").append(column.getName()).append("`");
-                break;
+    public static void addTableCreationScript(StringBuilder sb, Table table, SqlDialect dialect) {
+
+        sb.append("-- DROP TABLE ");
+        addTableName(sb, table, dialect);
+        sb.append(";\n\n");
+
+        sb.append("CREATE TABLE ");
+        addTableName(sb, table, dialect);
+        sb.append(" (\n");
+
+        for (int i = 0; i < table.getColumns().size(); i++) {
+            if (i > 0) {
+                sb.append(",\n");
+            }
+            sb.append("\t");
+            addColumnDef(sb, table.getColumns().get(i), dialect);
         }
 
-        sb.append(" ");
+        if (table.getPrimaryKey() != null && !table.getPrimaryKey().getColumns().isEmpty()) {
+            sb.append(",\n\t");
+            addPrimaryKeyDef(sb, table, dialect);
+        }
+        sb.append("\n);\n\n");
+    }
 
-        boolean addSize = true;
+    public static void addPrimaryKeyDef(StringBuilder sb, Table table, SqlDialect dialect) {
+        if (table.getPrimaryKey() == null || table.getPrimaryKey().getColumns().isEmpty()) {
+            return;
+        }
+        sb.append("PRIMARY KEY (");
+        for (int i = 0; i < table.getPrimaryKey().getColumns().size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append(formatMysql(table.getPrimaryKey().getColumns().get(i).getName(), dialect));
+        }
+        sb.append(")");
+    }
+
+    public static void addIndexesDef(StringBuilder sb, Table table, SqlDialect dialect) {
+        for (Index idx : table.getIndexes()) {
+            sb.append("CREATE ");
+            if (idx.isUnique()) {
+                sb.append("UNIQUE ");
+            }
+            sb.append("INDEX ");
+            sb.append(formatMysql(idx.getName(), dialect));
+            sb.append(" ON ");
+            addTableName(sb, table, dialect);
+            sb.append(" (");
+            sb.append(idx.getColumns().stream().map(col -> formatMysql(col.getName(), dialect))
+                    .collect(Collectors.joining(", ")));
+            sb.append(");\n\n");
+
+        }
+    }
+
+    public static void addForeignKeysDef(StringBuilder sb, Table table, SqlDialect dialect) {
+        if (table.getForeignKeys().isEmpty()) {
+            return;
+        }
+        for (ForeignKey fk : table.getForeignKeys()) {
+            sb.append("ALTER TABLE ");
+            addTableName(sb, table, dialect);
+            sb.append("\n\tADD CONSTRAINT ");
+            sb.append(formatMysql(fk.getName(), dialect));
+            sb.append("\n\tFOREIGN KEY (");
+            sb.append(fk.getColumns().stream().map(col -> formatMysql(col.getName(), dialect))
+                    .collect(Collectors.joining(", ")));
+            sb.append(") ");
+            sb.append("\n\tREFERENCES ");
+            addTableName(sb, fk.getRefTable(), dialect);
+            sb.append("(");
+            sb.append(fk.getRefColumns().stream().map(col -> formatMysql(col.getName(), dialect))
+                    .collect(Collectors.joining(", ")));
+            sb.append(");\n\n");
+        }
+    }
+
+    public static void addColumnDef(StringBuilder sb, Column column, SqlDialect dialect) {
+        sb.append(formatMysql(column.getName(), dialect));
+
+        sb.append(" ");
 
         switch (column.getDataType()) {
             case Types.CHAR:
@@ -37,22 +107,26 @@ public class DialectSyntaxHelper {
             case Types.NUMERIC:
             case Types.DECIMAL:
                 sb.append("NUMERIC");
+                sb.append("(");
+                sb.append(column.getLargo().toString());
+                if (Optional.ofNullable(column.getDecimalDigits()).orElse(0) > 0) {
+                    sb.append(",");
+                    sb.append(column.getDecimalDigits().toString());
+                }
+                sb.append(")");
                 break;
 
             case Types.BIT:
             case Types.BOOLEAN:
                 addBooleanDefinition(sb, column, dialect);
-                addSize = false;
                 break;
 
             case Types.TINYINT:
                 sb.append("TINYINT");
-                addSize = false;
                 break;
 
             case Types.SMALLINT:
                 sb.append("SMALLINT");
-                addSize = false;
                 break;
 
             case Types.INTEGER:
@@ -61,7 +135,6 @@ public class DialectSyntaxHelper {
 
             case Types.BIGINT:
                 sb.append("BIGINT");
-                addSize = false;
                 break;
 
             case Types.REAL:
@@ -85,23 +158,49 @@ public class DialectSyntaxHelper {
 
             case Types.TIME:
                 sb.append("TIME");
-
                 break;
 
             case Types.TIMESTAMP:
-                sb.append("TIMESTAMP");
-
+                sb.append("TIMESTAMP WITHOUT TIME ZONE");
                 break;
         }
 
-        if (addSize) {
-            sb.append("(");
-            sb.append(column.getLargo().toString());
-            if (Optional.ofNullable(column.getDecimalDigits()).orElse(0) > 0) {
-                sb.append(",");
-                sb.append(column.getDecimalDigits().toString());
-            }
-            sb.append(")");
+        switch (dialect) {
+            case HSQL:
+                if (column.getDefaultValue() != null && !column.getDefaultValue().isEmpty()) {
+                    sb.append(" DEFAULT '");
+                    sb.append(column.getDefaultValue());
+                    sb.append("'");
+                }
+                if (!column.isNullable()) {
+                    sb.append(" NOT NULL");
+                }
+                break;
+            case POSTGRES:
+            case SQLSERVER:
+            case MYSQL:
+            default:
+                if (!column.isNullable()) {
+                    sb.append(" NOT NULL");
+                }
+                if (column.getDefaultValue() != null && !column.getDefaultValue().isEmpty()) {
+                    sb.append(" DEFAULT ");
+
+                    if (column.getDataType() == Types.VARCHAR) {
+                        if (!column.getDefaultValue().startsWith("'")) {
+                            sb.append("'");
+                        }
+                    }
+
+                    sb.append(column.getDefaultValue());
+
+                    if (column.getDataType() == Types.VARCHAR) {
+                        if (!column.getDefaultValue().endsWith("'")) {
+                            sb.append("'");
+                        }
+                    }
+                }
+                break;
         }
     }
 
@@ -164,19 +263,17 @@ public class DialectSyntaxHelper {
     }
 
     public static void addTableName(StringBuilder sb, Table table, SqlDialect dialect) {
-        switch (dialect) {
-            case MYSQL:
-                sb.append("`").append(table.getSchema()).append("`").append(".").append("`").append(table.getNombre())
-                        .append("`");
-                break;
-            case HSQL:
-            case POSTGRES:
-            case SQLSERVER:
-            default:
-                sb.append(table.getSchema()).append(".").append(table.getNombre());
-                break;
+        if (table.getSchema() != null && !table.getSchema().isEmpty()) {
+            sb.append(formatMysql(table.getSchema(), dialect));
+            sb.append(".");
         }
-
+        sb.append(formatMysql(table.getNombre(), dialect));
     }
 
+    private static String formatMysql(String str, SqlDialect dialect) {
+        if (dialect == SqlDialect.MYSQL) {
+            return "`" + str + "`";
+        }
+        return str;
+    }
 }
