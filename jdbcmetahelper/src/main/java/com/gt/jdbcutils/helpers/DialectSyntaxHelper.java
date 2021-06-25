@@ -2,6 +2,7 @@ package com.gt.jdbcutils.helpers;
 
 import java.sql.JDBCType;
 import java.sql.Types;
+import java.util.Optional;
 
 import com.gt.jdbcutils.components.Column;
 import com.gt.jdbcutils.components.SqlDialect;
@@ -23,7 +24,9 @@ public class DialectSyntaxHelper {
         }
 
         sb.append(" ");
-        
+
+        boolean addSize = true;
+
         switch (column.getDataType()) {
             case Types.CHAR:
             case Types.VARCHAR:
@@ -33,76 +36,131 @@ public class DialectSyntaxHelper {
 
             case Types.NUMERIC:
             case Types.DECIMAL:
-                addNumericDefinition(sb, column, dialect);
+                sb.append("NUMERIC");
                 break;
 
             case Types.BIT:
             case Types.BOOLEAN:
-                result = Boolean.class;
+                addBooleanDefinition(sb, column, dialect);
+                addSize = false;
                 break;
 
             case Types.TINYINT:
-                result = Byte.class;
+                sb.append("TINYINT");
+                addSize = false;
                 break;
 
             case Types.SMALLINT:
-                result = Short.class;
+                sb.append("SMALLINT");
+                addSize = false;
                 break;
 
             case Types.INTEGER:
-                result = Integer.class;
+                sb.append("INTEGER");
                 break;
 
             case Types.BIGINT:
-                result = Long.class;
+                sb.append("BIGINT");
+                addSize = false;
                 break;
 
             case Types.REAL:
             case Types.FLOAT:
-                result = Float.class;
+                sb.append("FLOAT");
                 break;
 
             case Types.DOUBLE:
-                result = Double.class;
+                addDoubleDefinition(sb, column, dialect);
                 break;
 
             case Types.BINARY:
             case Types.VARBINARY:
             case Types.LONGVARBINARY:
-                result = Byte[].class;
+                addByteaDefinition(sb, column, dialect);
                 break;
 
             case Types.DATE:
-                result = java.sql.Date.class;
+                sb.append("DATE");
                 break;
 
             case Types.TIME:
-                result = java.sql.Time.class;
+                sb.append("TIME");
+
                 break;
 
             case Types.TIMESTAMP:
-                result = java.sql.Timestamp.class;
-                break;
-        }        
+                sb.append("TIMESTAMP");
 
-        switch(column.getDataType()) {
-            case java.sql.Types.BIGINT:
-            break;
+                break;
+        }
+
+        if (addSize) {
+            sb.append("(");
+            sb.append(column.getLargo().toString());
+            if (Optional.ofNullable(column.getDecimalDigits()).orElse(0) > 0) {
+                sb.append(",");
+                sb.append(column.getDecimalDigits().toString());
+            }
+            sb.append(")");
         }
     }
 
-    private static void addNumericDefinition(StringBuilder sb, Column column, SqlDialect dialect) {
+    private static void addByteaDefinition(StringBuilder sb, Column column, SqlDialect dialect) {
+        switch (dialect) {
+            case HSQL:
+                sb.append("BLOB");
+                break;
+            case MYSQL:
+                if (column.getLargo() < 256) {
+                    sb.append("TINYBLOB");
+                } else if (column.getLargo() < 5536) {
+                    sb.append("BLOB");
+                } else if (column.getLargo() < 16777216) {
+                    sb.append("MEDIUMBLOB");
+                } else {
+                    sb.append("LONGBLOB");
+                }
+                break;
+            case POSTGRES:
+            case SQLSERVER:
+            default:
+                sb.append("BYTEA");
+                break;
+        }
+    }
+
+    private static void addBooleanDefinition(StringBuilder sb, Column column, SqlDialect dialect) {
+        if (dialect.equals(SqlDialect.SQLSERVER)) {
+            sb.append("BIT");
+        } else {
+            sb.append("BOOLEAN");
+        }
+    }
+
+    private static void addDoubleDefinition(StringBuilder sb, Column column, SqlDialect dialect) {
+        switch (dialect) {
+            case HSQL:
+            case POSTGRES:
+                sb.append("DOUBLE PRECISION");
+                break;
+            case MYSQL:
+            case SQLSERVER:
+                sb.append("NUMERIC");
+                break;
+            default:
+                break;
+
+        }
     }
 
     private static void addVarcharDefinition(StringBuilder sb, Column column, SqlDialect dialect) {
 
-        
-        if(column.getLargo() > 1000 && dialect.equals(SqlDialect.HSQL)) {
+        if (column.getLargo() > 1000 && dialect.equals(SqlDialect.HSQL)) {
             sb.append("TEXT");
         } else {
             sb.append("VARCHAR(").append(column.getLargo().toString()).append(")");
         }
-        
+
     }
 
     public static void addTableName(StringBuilder sb, Table table, SqlDialect dialect) {

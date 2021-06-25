@@ -33,7 +33,6 @@ public class ScriptExecutor {
 		try (Connection conn = DriverManager.getConnection(jdbc, username, password)) {
 			runFile(conn, fileName);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -63,13 +62,16 @@ public class ScriptExecutor {
 				if (sb.length() > 0) {
 					sb.append("\n");
 				}
-				sb.append(line);
+				if(line.endsWith("; --")) {
+					sb.append(line.substring(0, line.length() - 3));
+				} else {
+					sb.append(line);
 
-				if (line.endsWith(";")) {
-					runStatement(sb.toString());
-					sb = new StringBuilder();
+					if (line.endsWith(";")) {
+						runStatement(sb.toString());
+						sb = new StringBuilder();
+					}
 				}
-
 			}
 
 			line = sb.toString();

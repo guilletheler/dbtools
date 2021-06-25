@@ -6,10 +6,11 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.CodeSource;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.gt.jdbcbackup.db.Backup;
+import com.gt.jdbcbackup.db.ScriptExecutor;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -18,9 +19,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-
-import com.gt.jdbcbackup.db.Backup;
-import com.gt.jdbcbackup.db.ScriptExecutor;
 
 public class MainClass {
 
@@ -45,11 +43,10 @@ public class MainClass {
 					commandLine.getOptionValue("file"));
 		} else {
 
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
-
 			Backup.toZipFile(commandLine.getOptionValue("d"), commandLine.getOptionValue("j"),
 					commandLine.getOptionValue("u"), commandLine.getOptionValue("p"),
-					commandLine.getOptionValue("file") + sdf.format(new Date()));
+					commandLine.getOptionValue("file"), commandLine.hasOption("ddl"),
+					commandLine.getOptionValue("dialect"));
 		}
 	}
 
@@ -62,9 +59,14 @@ public class MainClass {
 		options.addOption(
 				Option.builder("d").longOpt("driverclass").hasArg().desc("Clase java del driver jdbc").build());
 		options.addOption(Option.builder("j").longOpt("jdbc").hasArg().desc("jdbc connection string").build());
+		options.addOption(
+				Option.builder("l").longOpt("ddl").optionalArg(true).desc("indica que solo se creará el DDL").build());
 		options.addOption(Option.builder("u").longOpt("uid").hasArg().desc("Nombre de usuario").build());
+		options.addOption(Option.builder("s").longOpt("schema").hasArg().desc("limitar a solo un schema").build());
 		options.addOption(Option.builder("p").longOpt("pass").hasArg().desc("contraseña").build());
 		options.addOption(Option.builder("f").longOpt("file").hasArg().desc("base de datos").build());
+		options.addOption(Option.builder("a").longOpt("dialect").hasArg()
+				.desc("Dialecto del script generado, puede ser postgre, mysql, hsql o sqlserver").build());
 		options.addOption(Option.builder("e").longOpt("exec").optionalArg(true).desc(
 				"indica que se debe ejecutar el script SQL indicado en file en vez de realizar un backup, cada línea se separa con ;\n")
 				.build());
