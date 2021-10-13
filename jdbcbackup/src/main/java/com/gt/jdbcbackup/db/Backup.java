@@ -33,6 +33,7 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.lang3.StringUtils;
 
 import com.gt.jdbcbackup.MainClass;
+import com.gt.jdbcutils.components.SqlDialect;
 
 public class Backup {
 	Connection connection;
@@ -49,7 +50,7 @@ public class Backup {
 	}
 
 	public static void toZipFile(String driverClass, String jdbc, String username, String password, String fileName,
-			boolean ddl, String sqlDialect) throws ClassNotFoundException, SQLException {
+			boolean ddl, String[] catalogs, String[] schemas, String sqlDialect) throws ClassNotFoundException, SQLException {
 		java.util.logging.Logger.getLogger(MainClass.class.getName()).log(java.util.logging.Level.INFO,
 				"Iniciando backup de " + jdbc);
 
@@ -61,17 +62,33 @@ public class Backup {
 
 		try (Connection conn = DriverManager.getConnection(jdbc, username, password)) {
 
-			toZipFile(conn, fileName, ddl, sqlDialect);
+			toZipFile(conn, fileName, ddl, catalogs, schemas, sqlDialect);
 		}
 	}
 
-	public static void toZipFile(Connection conn, String fileName, boolean ddl, String sqlDialectStr)
+	public static void toZipFile(Connection conn, String fileName, boolean ddl, String[] catalogs, String[] schemas,  String sqlDialectStr)
 			throws SQLException {
+		
+		if(catalogs == null || catalogs.length == 0) {
+			toZipFile(conn, fileName, ddl, (String) null, schemas, sqlDialectStr);
+		} else {
+			for(String catalog : catalogs) {
+				toZipFile(conn, fileName, ddl, catalog, schemas, sqlDialectStr);
+			}
+		}
+	}
+	
+	public static void toZipFile(Connection conn, String fileName, boolean ddl, String catalog, String[] schemas,  String sqlDialectStr)
+				throws SQLException {
 
+		if(catalog != null) {
+			conn.setCatalog(catalog);
+		}
+		
 		if (fileName == null) {
-			try (ResultSet catalogs = conn.getMetaData().getCatalogs()) {
-				catalogs.next();
-				fileName = catalogs.getString("TABLE_CAT");
+			try (ResultSet catalogsRs = conn.getMetaData().getCatalogs()) {
+				catalogsRs.next();
+				fileName = catalogsRs.getString("TABLE_CAT");
 			}
 		}
 
@@ -96,7 +113,7 @@ public class Backup {
 
 			ZipEntry ze = new ZipEntry(fileName + ".sql");
 			zos.putNextEntry(ze);
-
+			
 			backup.setPrintStream(zos);
 			backup.getCreateScript();
 			zos.write("\r\n".getBytes());
@@ -188,10 +205,10 @@ public class Backup {
 				if (!rs.getBoolean("NON_UNIQUE")) {
 					idx += "UNIQUE ";
 				}
-				idx += "INDEX " + this.formatName(rs.getString("INDEX_NAME")) + "\n\tON ";
+				idx += "INDEX " + this.formatDstName(rs.getString("INDEX_NAME")) + "\n\tON ";
 
 				idx += this.formatTableName(rs.getString("TABLE_SCHEM"), rs.getString("TABLE_NAME")) + "("
-						+ this.formatName(rs.getString("COLUMN_NAME"));
+						+ this.formatDstName(rs.getString("COLUMN_NAME"));
 
 				indexDef.put(rs.getString("INDEX_NAME"), idx);
 			}
@@ -213,6 +230,12 @@ public class Backup {
 			}
 		}
 
+		try {
+			this.printStream.flush();
+		} catch (IOException e) {
+			java.util.logging.Logger.getLogger(Backup.class.getName()).log(java.util.logging.Level.SEVERE,
+					"Error haciendo flush al stream");
+		}
 	}
 
 	private void createFKsScript() throws SQLException {
@@ -238,6 +261,13 @@ public class Backup {
 		}
 
 		write("\n\n");
+
+		try {
+			this.printStream.flush();
+		} catch (IOException e) {
+			java.util.logging.Logger.getLogger(Backup.class.getName()).log(java.util.logging.Level.SEVERE,
+					"Error haciendo flush al stream");
+		}
 	}
 
 	private void createTablesScript() throws SQLException {
@@ -349,6 +379,13 @@ public class Backup {
 					default:
 						break;
 					}
+
+					try {
+						this.printStream.flush();
+					} catch (IOException e) {
+						java.util.logging.Logger.getLogger(Backup.class.getName()).log(java.util.logging.Level.SEVERE,
+								"Error haciendo flush al stream");
+					}
 				}
 			}
 		}
@@ -357,7 +394,7 @@ public class Backup {
 
 	private Long getNextValue(String schemaName, String tableName, String colName) throws SQLException {
 
-		String sqlCmd = "SELECT MAX(COALESCE(" + formatSourceMysql(colName) + ", 0)) + 1 as max " + "FROM "
+		String sqlCmd = "SELECT MAX(COALESCE(" + formatSrcName(colName) + ", 0)) + 1 as max " + "FROM "
 				+ formatSourceTableName(schemaName, tableName);
 
 		Long ret = 1L;
@@ -404,7 +441,7 @@ public class Backup {
 				}
 				write("\t");
 
-				write(formatName(rs.getString("COLUMN_NAME")));
+				write(formatDstName(rs.getString("COLUMN_NAME")));
 
 				write(" ");
 				if ((tieneIsAutoinc) && (rs.getString("IS_AUTOINCREMENT") != null)
@@ -540,7 +577,7 @@ public class Backup {
 				} else {
 					write(", ");
 				}
-				write(formatName(rs.getString("COLUMN_NAME")));
+				write(formatDstName(rs.getString("COLUMN_NAME")));
 			}
 			if (!first) {
 				write(")\n");
@@ -548,6 +585,13 @@ public class Backup {
 		}
 
 		write(");\n\n");
+
+		try {
+			this.printStream.flush();
+		} catch (IOException e) {
+			java.util.logging.Logger.getLogger(Backup.class.getName()).log(java.util.logging.Level.SEVERE,
+					"Error haciendo flush al stream");
+		}
 	}
 
 	private void getFkScript(String schemaName, String tableName) throws SQLException {
@@ -574,16 +618,16 @@ public class Backup {
 					fkColumnFrom.put(rs.getString("FK_NAME"), (String) fkColumnFrom.get(tableName) + ", ");
 					fkColumnTo.put(rs.getString("FK_NAME"), (String) fkColumnTo.get(tableName) + ", ");
 				}
-				fkColumnFrom.put(rs.getString("FK_NAME"),
-						(String) fkColumnFrom.get(rs.getString("FK_NAME")) + formatName(rs.getString("FKCOLUMN_NAME")));
-				fkColumnTo.put(rs.getString("FK_NAME"),
-						(String) fkColumnTo.get(rs.getString("FK_NAME")) + formatName(rs.getString("PKCOLUMN_NAME")));
+				fkColumnFrom.put(rs.getString("FK_NAME"), (String) fkColumnFrom.get(rs.getString("FK_NAME"))
+						+ formatDstName(rs.getString("FKCOLUMN_NAME")));
+				fkColumnTo.put(rs.getString("FK_NAME"), (String) fkColumnTo.get(rs.getString("FK_NAME"))
+						+ formatDstName(rs.getString("PKCOLUMN_NAME")));
 			}
 			for (String kfk : fkTableFrom.keySet()) {
 				write("ALTER TABLE ");
 				write((String) fkTableFrom.get(kfk));
 				write("\n\tADD CONSTRAINT ");
-				write(formatName(kfk));
+				write(formatDstName(kfk));
 				write("\n\tFOREIGN KEY (");
 				write((String) fkColumnFrom.get(kfk));
 				write(") ");
@@ -625,8 +669,8 @@ public class Backup {
 				columns = columns + ", ";
 				sourceColumns = sourceColumns + ", ";
 			}
-			sourceColumns = sourceColumns + formatSourceMysql(col);
-			columns = columns + formatName(col);
+			sourceColumns = sourceColumns + formatSrcName(col);
+			columns = columns + formatDstName(col);
 		}
 		Statement stmt = this.connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 		stmt.setFetchSize(100);
@@ -810,6 +854,13 @@ public class Backup {
 		stmt.close();
 
 		disableIdentityInsert(schemaName, tableName);
+
+		try {
+			this.printStream.flush();
+		} catch (IOException e) {
+			java.util.logging.Logger.getLogger(Backup.class.getName()).log(java.util.logging.Level.SEVERE,
+					"Error haciendo flush al stream");
+		}
 	}
 
 	private void write(String content) {
@@ -873,20 +924,19 @@ public class Backup {
 		return ret;
 	}
 
-	private String formatSourceMysql(String columnName) {
-		if (getSourceSqlDialect() == SqlDialect.MYSQL) {
-
-			return "`" + columnName + "`";
-		}
-
-		return columnName;
+	private String formatSrcName(String columnName) {
+		return formatName(getSourceSqlDialect(), columnName);
 	}
 
-	private String formatName(String columnName) {
+	private String formatDstName(String columnName) {
+		return formatName(getSqlDialect(), columnName);
+	}
+
+	private String formatName(SqlDialect dialect, String columnName) {
 
 		String ret = columnName;
 
-		switch (getSqlDialect()) {
+		switch (dialect) {
 		case MYSQL:
 			ret = "`" + ret + "`";
 			break;
@@ -895,9 +945,7 @@ public class Backup {
 		case POSTGRES:
 			break;
 		case SQLSERVER:
-			if (ret.contains(" ")) {
-				ret = "[" + ret + "]";
-			}
+			ret = "[" + ret + "]";
 			break;
 		default:
 			break;
