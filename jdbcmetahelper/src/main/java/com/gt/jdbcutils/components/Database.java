@@ -17,7 +17,7 @@ public class Database {
 
     public Table getTableByName(String schemaName, String tableName) {
         return tables.stream()
-                .filter(table -> table.getSchema().equals(schemaName) && table.getNombre().equals(tableName)).findAny()
+                .filter(table -> table.getSchema().equalsIgnoreCase(schemaName) && table.getNombre().equalsIgnoreCase(tableName)).findAny()
                 .orElse(null);
     }
 }

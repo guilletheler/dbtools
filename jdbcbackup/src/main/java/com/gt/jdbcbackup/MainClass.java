@@ -46,6 +46,7 @@ public class MainClass {
 			Backup.toZipFile(commandLine.getOptionValue("d"), commandLine.getOptionValue("j"),
 					commandLine.getOptionValue("u"), commandLine.getOptionValue("p"),
 					commandLine.getOptionValue("file"), commandLine.hasOption("ddl"),
+					commandLine.getOptionValues("catalog"), commandLine.getOptionValues("schema"),
 					commandLine.getOptionValue("dialect"));
 		}
 	}
@@ -62,8 +63,12 @@ public class MainClass {
 		options.addOption(
 				Option.builder("l").longOpt("ddl").optionalArg(true).desc("indica que solo se creará el DDL").build());
 		options.addOption(Option.builder("u").longOpt("uid").hasArg().desc("Nombre de usuario").build());
-		options.addOption(Option.builder("s").longOpt("schema").hasArg().desc("limitar a solo un schema").build());
+		options.addOption(Option.builder("s").longOpt("schema").hasArg().desc("lista de schemas a copiar").numberOfArgs(Option.UNLIMITED_VALUES).build());
+		options.addOption(Option.builder("c").longOpt("catalog").hasArg().desc("lista de catalogos a copiar").numberOfArgs(Option.UNLIMITED_VALUES).build());
+		
 		options.addOption(Option.builder("p").longOpt("pass").hasArg().desc("contraseña").build());
+		
+		
 		options.addOption(Option.builder("f").longOpt("file").hasArg().desc("base de datos").build());
 		options.addOption(Option.builder("a").longOpt("dialect").hasArg()
 				.desc("Dialecto del script generado, puede ser postgre, mysql, hsql o sqlserver").build());
