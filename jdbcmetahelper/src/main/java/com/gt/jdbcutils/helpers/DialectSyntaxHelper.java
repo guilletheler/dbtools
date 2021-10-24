@@ -2,6 +2,8 @@ package com.gt.jdbcutils.helpers;
 
 import java.sql.Types;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import com.gt.jdbcutils.components.Column;
@@ -281,17 +283,18 @@ public class DialectSyntaxHelper {
 
 		switch (column.getDataType()) {
 		case Types.BIGINT:
-			return long.class;
+			return Long.class;
 		case Types.LONGVARBINARY:
 			return byte[].class;
 		case Types.BINARY:
 			return byte[].class;
+		case Types.BOOLEAN:
 		case Types.BIT:
-			return boolean.class;
+			return Boolean.class;
 		case Types.CHAR:
 			return String.class;
 		case Types.DATE:
-			return java.sql.Date.class;
+			return java.util.Date.class;
 		case Types.TIMESTAMP:
 			return java.sql.Timestamp.class;
 		case Types.DECIMAL:
@@ -299,7 +302,7 @@ public class DialectSyntaxHelper {
 		case Types.DOUBLE:
 			return double.class;
 		case Types.INTEGER:
-			return int.class;
+			return Integer.class;
 		case Types.NCHAR:
 			return String.class;
 		case Types.LONGVARCHAR:
@@ -311,14 +314,16 @@ public class DialectSyntaxHelper {
 		case Types.NVARCHAR:
 			return String.class;
 		case Types.REAL:
-			return float.class;
+			return Float.class;
 		case Types.SMALLINT:
-			return short.class;
+			return Short.class;
 		case Types.TINYINT:
-			return short.class;
+			return Short.class;
 		case Types.VARBINARY:
 			return byte[].class;
 		}
+		
+		Logger.getLogger(DialectSyntaxHelper.class.getName()).log(Level.WARNING, "tipo no reconocido: " + column.getDataType());
 		
 		return Object.class;
 	}
