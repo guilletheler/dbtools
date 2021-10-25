@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.gt.jdbcutils.components.Column;
 import com.gt.jdbcutils.components.Database;
@@ -16,6 +18,7 @@ public class JdbcMetaDecoder {
 
     public static Database buildDatabase(Connection conn) throws SQLException {
 
+    	Logger.getLogger(JdbcMetaDecoder.class.getName()).log(Level.INFO, "MetaDecoder : INICIANDO");
         Database database = new Database();
 
         database.setNombre(conn.getCatalog());
@@ -24,15 +27,19 @@ public class JdbcMetaDecoder {
 
         try (ResultSet rs = metaData.getTables(conn.getCatalog(), null, "%", new String[] { "TABLE" })) {
             while (rs.next()) {
+            	Logger.getLogger(JdbcMetaDecoder.class.getName()).log(Level.INFO, "MetaDecoder Table: " + rs.getString("TABLE_SCHEM") + "." + rs.getString("TABLE_NAME"));
                 buildTable(database, conn, rs.getString("TABLE_SCHEM"), rs.getString("TABLE_NAME"));
             }
         }
 
         try (ResultSet rs = metaData.getTables(conn.getCatalog(), null, "%", new String[] { "TABLE" })) {
             while (rs.next()) {
+            	Logger.getLogger(JdbcMetaDecoder.class.getName()).log(Level.INFO, "MetaDecoder FK: " + rs.getString("TABLE_SCHEM") + "." + rs.getString("TABLE_NAME"));
                 buildForeignKeys(database, conn, rs.getString("TABLE_SCHEM"), rs.getString("TABLE_NAME"));
             }
         }
+        
+        Logger.getLogger(JdbcMetaDecoder.class.getName()).log(Level.INFO, "MetaDecoder : FINALIZADO");
 
         return database;
     }

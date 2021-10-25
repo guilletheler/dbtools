@@ -15,11 +15,13 @@ public class Table {
     Database database;
 
     String schema;
+    
     String nombre;
 
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     List<Column> columns = new ArrayList<>();
+    
     PrimaryKey primaryKey;
 
     @EqualsAndHashCode.Exclude
@@ -29,6 +31,8 @@ public class Table {
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     List<ForeignKey> foreignKeys = new ArrayList<>();
+    
+    boolean fkFetched = false;
 
     public Column getColumnByName(String columnName) {
         return columns.stream().filter(col -> col.getName().equalsIgnoreCase(columnName)).findAny().orElse(null);
@@ -41,4 +45,16 @@ public class Table {
     public ForeignKey getForeignKeyByName(String foreignKeyName) {
         return foreignKeys.stream().filter(col -> col.getName().equalsIgnoreCase(foreignKeyName)).findAny().orElse(null);
     }
+    
+    public Column getManyToOne(Column column) {
+
+		for (ForeignKey fk : getForeignKeys()) {
+			if (fk.getColumns().size() == 1 && fk.getRefColumns().size() == 1
+					&& fk.getColumns().get(0).equals(column)) {
+				return fk.getRefColumns().get(0);
+			}
+		}
+
+		return null;
+	}
 }

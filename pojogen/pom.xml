@@ -17,11 +17,6 @@
 	</properties>
 
 	<dependencies>
-		<dependency>
-			<groupId>com.gt.jdbcutils</groupId>
-			<artifactId>jdbcmetahelper</artifactId>
-			<version>1.0-SNAPSHOT</version>
-		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
