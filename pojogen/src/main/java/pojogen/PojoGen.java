@@ -318,7 +318,7 @@ public class PojoGen {
 		try (ResultSet rs = metaData.getImportedKeys(conn.getCatalog(), schemaName, tableName)) {
 			while (rs.next()) {
 				if (rs.getString("FKCOLUMN_NAME").equalsIgnoreCase(columName)) {
-					ret = new String[] { rs.getString("PKTABLE_NAME"), rs.getString("COLUMN_NAME") };
+					ret = new String[] { rs.getString("PKTABLE_NAME"), rs.getString("PKCOLUMN_NAME") };
 					break;
 				}
 			}
