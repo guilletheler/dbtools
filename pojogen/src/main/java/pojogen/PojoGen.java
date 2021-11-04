@@ -107,12 +107,14 @@ public class PojoGen {
 			while (rs.next()) {
 
 				String columnName = rs.getString("COLUMN_NAME");
-				String refTable = fkTableName(schemaName, tableName, columnName);
+				String[] refTable = fkTableName(schemaName, tableName, columnName);
 				if (refTable != null) {
 					sb.append("\t// ref ").append(refTable).append("\n");
 					sb.append("\t@ManyToOne\n");
-					className = getTableClassName(refTable);
-					tableRefs.add(refTable);
+					sb.append("\t@JoinColumn(name = \"").append(columnName).append("\", referencedColumnName = \"")
+							.append(refTable[1]).append("\")\n");
+					className = getTableClassName(refTable[0]);
+					tableRefs.add(refTable[0]);
 					sb.append("\t").append(className).append(" ");
 					String varName = rs.getString("COLUMN_NAME");
 					if (varName.toLowerCase().endsWith("_id")) {
@@ -149,7 +151,7 @@ public class PojoGen {
 					if (className.equals("[B")) {
 						className = "byte[]";
 					}
-					
+
 					sb.append("\t@Column(name = \"").append(columnName).append("\")\n");
 					sb.append("\t").append(className).append(" ");
 					sb.append(getVarName(columnName));
@@ -161,7 +163,7 @@ public class PojoGen {
 		if (buildRefs) {
 			List<String[]> tablesRef = exportedRef(schemaName, tableName);
 
-//		sb.append("// exported\n");
+			// sb.append("// exported\n");
 			for (String[] ref : tablesRef) {
 				sb.append("\t// ref ").append(Arrays.toString(ref)).append("\n");
 				sb.append("\t@EqualsAndHashCode.Exclude\n").append("\t@ToString.Exclude\n")
@@ -171,12 +173,12 @@ public class PojoGen {
 						.append(getTableClassName(ref[6])).append("> ")
 						.append(getPluralVarName(getTableClassName(ref[6]))).append(";\n").append("\t\n");
 			}
-//
-//		sb.append("imported\n");
-//		for (String[] ref : importedRef(schemaName, tableName)) {
-//			sb.append(Arrays.toString(ref));
-//			sb.append("\n");
-//		}
+			//
+			// sb.append("imported\n");
+			// for (String[] ref : importedRef(schemaName, tableName)) {
+			// sb.append(Arrays.toString(ref));
+			// sb.append("\n");
+			// }
 
 			for (String[] ref : tablesRef) {
 				sb.append("\tpublic List<").append(getTableClassName(ref[6])).append("> get")
@@ -188,14 +190,14 @@ public class PojoGen {
 			}
 		}
 		sb.append("}\n\n");
-//
-//		for (Table tableRef : tableRefs) {
-//			if (!tableRef.equals(table)) {
-//
-//				sb.append("\n\n\n\n");
-//				sb.append(buildPojo(tableRef));
-//			}
-//		}
+		//
+		// for (Table tableRef : tableRefs) {
+		// if (!tableRef.equals(table)) {
+		//
+		// sb.append("\n\n\n\n");
+		// sb.append(buildPojo(tableRef));
+		// }
+		// }
 
 		return sb.toString();
 
@@ -307,16 +309,16 @@ public class PojoGen {
 		return ret;
 	}
 
-	private String fkTableName(String schemaName, String tableName, String columName) throws SQLException {
+	private String[] fkTableName(String schemaName, String tableName, String columName) throws SQLException {
 
 		DatabaseMetaData metaData = conn.getMetaData();
 
-		String ret = null;
+		String[] ret = null;
 
 		try (ResultSet rs = metaData.getImportedKeys(conn.getCatalog(), schemaName, tableName)) {
 			while (rs.next()) {
 				if (rs.getString("FKCOLUMN_NAME").equalsIgnoreCase(columName)) {
-					ret = rs.getString("PKTABLE_NAME");
+					ret = new String[] { rs.getString("PKTABLE_NAME"), rs.getString("COLUMN_NAME") };
 					break;
 				}
 			}
@@ -378,7 +380,7 @@ public class PojoGen {
 		case Types.TIMESTAMP:
 			return java.sql.Timestamp.class;
 		case Types.DECIMAL:
-//			return java.math.BigDecimal.class;
+			// return java.math.BigDecimal.class;
 			return java.lang.Double.class;
 		case Types.DOUBLE:
 			return double.class;
@@ -389,7 +391,7 @@ public class PojoGen {
 		case Types.LONGVARCHAR:
 			return String.class;
 		case Types.NUMERIC:
-//			return java.math.BigDecimal.class;
+			// return java.math.BigDecimal.class;
 			return java.lang.Double.class;
 		case Types.VARCHAR:
 			return String.class;
