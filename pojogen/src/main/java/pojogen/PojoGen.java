@@ -33,6 +33,10 @@ public class PojoGen {
 	String entitiesSubPackageName = "model";
 
 	public String buildPojo(String schemaName, String tableName, boolean buildRefs) throws SQLException {
+		return buildPojo(schemaName, tableName, getTableClassName(tableName), buildRefs);
+	}
+
+	public String buildPojo(String schemaName, String tableName, String className, boolean buildRefs) throws SQLException {
 
 		StringBuilder sb = new StringBuilder();
 
@@ -48,6 +52,7 @@ public class PojoGen {
 		sb.append("import javax.persistence.Entity;\n");
 		sb.append("import javax.persistence.GeneratedValue;\n");
 		sb.append("import javax.persistence.GenerationType;\n");
+		sb.append("import javax.persistence.JoinColumn;\n");
 		sb.append("import javax.persistence.OneToMany;\n");
 		sb.append("import javax.persistence.ManyToOne;\n");
 		sb.append("import javax.persistence.Temporal;\n");
@@ -80,7 +85,7 @@ public class PojoGen {
 		}
 		sb.append("\n");
 
-		String className = getTableClassName(tableName);
+		
 
 		sb.append("public class ").append(className).append(" ");
 
@@ -103,19 +108,22 @@ public class PojoGen {
 
 		List<String> tableRefs = new ArrayList<>();
 
+
+		String columnClassName = "";
+
 		try (ResultSet rs = metaData.getColumns(conn.getCatalog(), schemaName, tableName, "%")) {
 			while (rs.next()) {
 
 				String columnName = rs.getString("COLUMN_NAME");
 				String[] refTable = fkTableName(schemaName, tableName, columnName);
 				if (refTable != null) {
-					sb.append("\t// ref ").append(refTable).append("\n");
+					sb.append("\t// ref ").append(refTable[0]).append(".").append(refTable[1]).append("\n");
 					sb.append("\t@ManyToOne\n");
 					sb.append("\t@JoinColumn(name = \"").append(columnName).append("\", referencedColumnName = \"")
 							.append(refTable[1]).append("\")\n");
-					className = getTableClassName(refTable[0]);
+							columnClassName = getTableClassName(refTable[0]);
 					tableRefs.add(refTable[0]);
-					sb.append("\t").append(className).append(" ");
+					sb.append("\t").append(columnClassName).append(" ");
 					String varName = rs.getString("COLUMN_NAME");
 					if (varName.toLowerCase().endsWith("_id")) {
 						varName = varName.substring(0, varName.length() - 3);
@@ -136,24 +144,24 @@ public class PojoGen {
 						}
 					}
 
-					className = SQLToJavaClass(rs.getInt("DATA_TYPE")).getName();
-					if (className.startsWith("java.lang.")) {
-						className = className.substring(10);
+					columnClassName = SQLToJavaClass(rs.getInt("DATA_TYPE")).getName();
+					if (columnClassName.startsWith("java.lang.")) {
+						columnClassName = columnClassName.substring(10);
 					}
-					if (className.equals("java.util.Date")) {
+					if (columnClassName.equals("java.util.Date")) {
 						sb.append("\t@Temporal(TemporalType.DATE)\n");
 					}
-					if (className.equals("java.sql.Timestamp")) {
+					if (columnClassName.equals("java.sql.Timestamp")) {
 						sb.append("\t@Temporal(TemporalType.TIMESTAMP)\n");
-						className = "java.util.Date";
+						columnClassName = "java.util.Date";
 					}
 
-					if (className.equals("[B")) {
-						className = "byte[]";
+					if (columnClassName.equals("[B")) {
+						columnClassName = "byte[]";
 					}
 
 					sb.append("\t@Column(name = \"").append(columnName).append("\")\n");
-					sb.append("\t").append(className).append(" ");
+					sb.append("\t").append(columnClassName).append(" ");
 					sb.append(getVarName(columnName));
 				}
 				sb.append(";\n\n");
@@ -234,14 +242,14 @@ public class PojoGen {
 	}
 
 	private String getTableClassName(String tableName) {
-		String className = StringUtils.capitalize(getVarName(tableName));
+		String tableClassName = StringUtils.capitalize(getVarName(tableName));
 
-		if (!className.endsWith("tes") && !className.endsWith("des") && className.endsWith("es")) {
-			className = className.substring(0, className.length() - 2);
-		} else if (className.endsWith("s")) {
-			className = className.substring(0, className.length() - 1);
+		if (!tableClassName.endsWith("tes") && !tableClassName.endsWith("des") && tableClassName.endsWith("es")) {
+			tableClassName = tableClassName.substring(0, tableClassName.length() - 2);
+		} else if (tableClassName.endsWith("s")) {
+			tableClassName = tableClassName.substring(0, tableClassName.length() - 1);
 		}
-		return className;
+		return tableClassName;
 	}
 
 	private String getVarName(String name) {
