@@ -36,7 +36,8 @@ public class PojoGen {
 		return buildPojo(schemaName, tableName, getTableClassName(tableName), buildRefs);
 	}
 
-	public String buildPojo(String schemaName, String tableName, String className, boolean buildRefs) throws SQLException {
+	public String buildPojo(String schemaName, String tableName, String className, boolean buildRefs)
+			throws SQLException {
 
 		StringBuilder sb = new StringBuilder();
 
@@ -59,6 +60,7 @@ public class PojoGen {
 		sb.append("import javax.persistence.TemporalType;\n");
 		sb.append("import javax.persistence.Id;\n");
 		sb.append("import javax.persistence.Table;\n");
+		sb.append("import javax.validation.constraints.Size;\n");
 		sb.append("\n");
 		if (haveColumnCodigo(schemaName, tableName) && haveColumnNombre(schemaName, tableName)) {
 			sb.append("import ").append(projectPackageName).append(".").append("model.CodigoNombre;\n");
@@ -85,8 +87,6 @@ public class PojoGen {
 		}
 		sb.append("\n");
 
-		
-
 		sb.append("public class ").append(className).append(" ");
 
 		if (haveColumnCodigo(schemaName, tableName) && haveColumnNombre(schemaName, tableName)) {
@@ -108,7 +108,6 @@ public class PojoGen {
 
 		List<String> tableRefs = new ArrayList<>();
 
-
 		String columnClassName = "";
 
 		try (ResultSet rs = metaData.getColumns(conn.getCatalog(), schemaName, tableName, "%")) {
@@ -121,7 +120,7 @@ public class PojoGen {
 					sb.append("\t@ManyToOne\n");
 					sb.append("\t@JoinColumn(name = \"").append(columnName).append("\", referencedColumnName = \"")
 							.append(refTable[1]).append("\")\n");
-							columnClassName = getTableClassName(refTable[0]);
+					columnClassName = getTableClassName(refTable[0]);
 					tableRefs.add(refTable[0]);
 					sb.append("\t").append(columnClassName).append(" ");
 					String varName = rs.getString("COLUMN_NAME");
@@ -161,6 +160,9 @@ public class PojoGen {
 					}
 
 					sb.append("\t@Column(name = \"").append(columnName).append("\")\n");
+					if (columnClassName.equals("String")) {
+						sb.append("\t@Size(max = " + rs.getInt("COLUMN_SIZE ") + ")");
+					}
 					sb.append("\t").append(columnClassName).append(" ");
 					sb.append(getVarName(columnName));
 				}
