@@ -47,12 +47,12 @@ public class DbDiff {
 	private void diffTablas(Connection izquierda, Connection derecha) throws SQLException, IOException {
 
 		ResultSet rs1 = this.c1.getMetaData().getTables(this.c1.getCatalog(), null, "%", new String[] { "TABLE" });
-		ResultSet rs2 = this.c2.getMetaData().getTables(this.c2.getCatalog(), null, "%", new String[] { "TABLE" });
+		ResultSet rs2;
 
 		String tabla1;
 		while (rs1.next()) {
 			tabla1 = rs1.getString("TABLE_SCHEM") + "." + rs1.getString("TABLE_NAME");
-			rs2.beforeFirst();
+			rs2 = this.c2.getMetaData().getTables(this.c2.getCatalog(), null, "%", new String[] { "TABLE" });
 			boolean esta = false;
 			while (rs2.next()) {
 				if (tabla1.equalsIgnoreCase(rs2.getString("TABLE_SCHEM") + "." + rs2.getString("TABLE_NAME"))) {
