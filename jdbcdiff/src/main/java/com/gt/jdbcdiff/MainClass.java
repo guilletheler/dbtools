@@ -28,20 +28,21 @@ public class MainClass {
 			throws SQLException, ClassNotFoundException, FileNotFoundException, IOException {
 
 		if (args == null || args.length == 0) {
-			args = new String[] {
-					"-d1", "com.microsoft.sqlserver.jdbc.SQLServerDriver",
-					"-d2", "com.microsoft.sqlserver.jdbc.SQLServerDriver",
-					"-j1",
-					"jdbc:sqlserver://;serverName=dev.onesolutions.com.ar;databaseName=OSDEV_DEV;TrustServerCertificate=True;",
-					"-j2",
-					"jdbc:sqlserver://;serverName=dev.onesolutions.com.ar;databaseName=OSTest_QA;TrustServerCertificate=True;",
-					"-u1", "luisB",
-					"-u2", "luisB",
-					"-p1", "293!pMr7",
-					"-p2", "293!pMr7",
-					"-f1", "diff1.sql",
-					"-f2", "diff2.sql"
-			};
+			args = new String[] { "-h" };
+			// args = new String[] {
+			// 		"-d1", "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+			// 		"-d2", "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+			// 		"-j1",
+			// 		"jdbc:sqlserver://;serverName=dev.onesolutions.com.ar;databaseName=OSDEV_DEV;TrustServerCertificate=True;",
+			// 		"-j2",
+			// 		"jdbc:sqlserver://;serverName=dev.onesolutions.com.ar;databaseName=OSTest_QA;TrustServerCertificate=True;",
+			// 		"-u1", "luisB",
+			// 		"-u2", "luisB",
+			// 		"-p1", "293!pMr7",
+			// 		"-p2", "293!pMr7",
+			// 		"-f1", "diff1.sql",
+			// 		"-f2", "diff2.sql"
+			// };
 		}
 
 		CommandLineParser parser = new DefaultParser();
